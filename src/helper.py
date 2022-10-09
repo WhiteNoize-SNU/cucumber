@@ -4,7 +4,9 @@ Helper Functions
 
 from typing import Dict, Tuple
 import pandas as pd
+import pandas.io.formats.style as style
 import numpy as np
+import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from sklearn import linear_model
@@ -231,3 +233,53 @@ def evaluate_growth_level(properties_df: pd.DataFrame) -> pd.DataFrame:
 
     properties_df["Growth_level"] = properties_df.apply(get_level, axis=1)
     return properties_df
+
+
+def bp_rp_df_with_specific_loc(bp_rp_df: pd.DataFrame, loc: str = "2") -> pd.DataFrame:
+    """Function to pick out specific location
+
+    Args:
+        bp_rp_df (pd.DataFrame): Dataframe of mechanical properties.
+        loc (str, optional): 1=top, 2=middle, 3=bottom. Defaults to "2".
+
+    Returns:
+        pd.DataFrame: Dataframe of mechanical properties with location picked out.
+    """
+    bp_rp_loc_df = pd.DataFrame({"Bioyield Point": [], "Rupture Point": []})
+    for i in bp_rp_df.index:
+        if bp_rp_df.iloc[[i]]["Name"].values[0][-1] == loc:
+            bp_rp_loc_df = pd.concat([bp_rp_loc_df, bp_rp_df.iloc[[i]]], axis=0)
+    bp_rp_loc_df.reset_index(inplace=True)
+    bp_rp_loc_df.drop(["index"], axis=1, inplace=True)
+    return bp_rp_loc_df
+
+
+def get_corr_matrix(
+    df_target: pd.DataFrame,
+    method: str = "pearson",
+    draw_method: None | str = None,
+    text_auto: bool = True,
+) -> Tuple[pd.DataFrame, go.Figure | style.Styler]:
+    """Get Correlation Matrix and Draw
+
+    Args:
+        df (pd.DataFrame): DataFrame to get Correlation Matrix
+        method (None | str, optional): Correlation Calculation Method,
+                                       {"pearson", "kendall", "spearman"}.
+                                       Defaults to "pearson".
+        draw_method (str, optional): Heatmap Draw Option. Defaults to "1".
+        text_auto (bool, optional): Whether to display correlation values. Defaults to True.
+
+    Returns:
+        pd.DataFrame: Correlation Matrix
+    """
+    df_corr = df_target.corr(method=method)
+    if draw_method:
+        if draw_method == "1":
+            styler = df_corr.style.background_gradient(cmap="coolwarm")
+            ret = styler
+        elif draw_method == "2":
+            fig = px.imshow(df_corr, text_auto=text_auto)
+            ret = fig
+
+    return df_corr, ret
