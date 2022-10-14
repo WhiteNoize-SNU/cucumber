@@ -39,3 +39,6 @@ jspm_packages
 # Python Cache data
 __pycache__/
 *.pyc
+
+# Python virtual env
+.venv
