@@ -57,18 +57,18 @@ def df_dict_generation_test(_dict: dict, repeat: int = 2):
 
 
 def _find_deform(
-    target_df: pd.DataFrame, bp_rp: pd.DataFrame
+    target_df: pd.DataFrame, bp_rp: pd.DataFrame, rel_tol=1e-5
 ) -> Tuple[pd.Series, pd.Series, np.int64, np.int64]:
     bioyield_point = bp_rp["Bioyield Point"]
     rupture_point = bp_rp["Rupture Point"]
 
     for force in target_df["Force"]:
-        if is_close(force, bioyield_point.to_numpy()):
+        if is_close(force, bioyield_point.to_numpy(), rel_tol=rel_tol):
             idx_bp = target_df[target_df["Force"] == force].index.values[0]
             bp_deform = target_df["Stroke"][idx_bp]
 
     for force in target_df["Force"]:
-        if is_close(force, rupture_point.to_numpy()):
+        if is_close(force, rupture_point.to_numpy(), rel_tol=rel_tol):
             idx_rp = target_df[target_df["Force"] == force].index.values[0]
             rp_deform = target_df["Stroke"][idx_rp]
 
@@ -145,11 +145,11 @@ def plot_correlation(
     Returns:
         Tuple[float, float, np.float64, np.float64]: Regression outputs.
     """
+    bp_rp_loc_df.fillna(bp_rp_loc_df.mean(), inplace=True)
     if add_regression:
         plot_df = pd.concat([properties_df, bp_rp_loc_df], axis=1)
         x_property = plot_df[target[0]].values.reshape(-1, 1)
         y_mechanical = plot_df[target[1]].values.reshape(-1, 1)
-
         regr = linear_model.LinearRegression()
         regr.fit(x_property, y_mechanical)
         y_hat = regr.predict(x_property)
@@ -189,7 +189,10 @@ def plot_correlation(
 
 
 def secant_modulus(
-    sample: str, utm_df_dict: Dict[str, pd.DataFrame], bp_rp_df: pd.DataFrame
+    sample: str,
+    utm_df_dict: Dict[str, pd.DataFrame],
+    bp_rp_df: pd.DataFrame,
+    rel_tol=1e-5,
 ) -> np.ndarray:
     """탄성계수를 구하기 위해 Secant Method를 사용한다.
     구하는 방법 : 원점과 Bioyield Point 사이의 기울기
@@ -204,7 +207,7 @@ def secant_modulus(
     """
     target_df = utm_df_dict[sample]
     bp_rp = bp_rp_df.loc[bp_rp_df["Name"] == sample]
-    bp_deform, _, idx_bp, _ = _find_deform(target_df, bp_rp)
+    bp_deform, _, idx_bp, _ = _find_deform(target_df, bp_rp, rel_tol=rel_tol)
     bp_force = target_df["Force"][idx_bp]  # np.float64
     secant = bp_force / bp_deform
     return secant
